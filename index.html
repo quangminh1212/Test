@@ -17,7 +17,6 @@
     </style>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script crossorigin src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
   </head>
   <body>
     <div class="wrap">
@@ -26,97 +25,100 @@
       <div id="app"></div>
     </div>
 
-    <script type="text/babel">
-      const { useState, useRef, useEffect } = React;
+    <script type="text/javascript">
+      (function () {
+        const e = React.createElement;
 
-      function App() {
-        const [term, setTerm] = useState("");
-        const [count, setCount] = useState(null);
-        const [status, setStatus] = useState("idle"); // idle | running | done | error
-        const [processed, setProcessed] = useState(0);
-        const [totalFiles, setTotalFiles] = useState(0);
-        const [log, setLog] = useState([]);
-        const evtRef = useRef(null);
+        function App() {
+          const [term, setTerm] = React.useState("");
+          const [count, setCount] = React.useState(null);
+          const [status, setStatus] = React.useState("idle"); // idle | running | done | error
+          const [processed, setProcessed] = React.useState(0);
+          const [totalFiles, setTotalFiles] = React.useState(0);
+          const [log, setLog] = React.useState([]);
+          const evtRef = React.useRef(null);
 
-        useEffect(() => () => {
-          if (evtRef.current) evtRef.current.close();
-        }, []);
+          React.useEffect(() => {
+            return () => { if (evtRef.current) evtRef.current.close(); };
+          }, []);
 
-        const startSearch = () => {
-          if (!term) return alert('Vui lòng nhập từ cần tìm');
-          if (evtRef.current) {
-            evtRef.current.close();
-          }
-          setCount(0);
-          setStatus('running');
-          setProcessed(0);
-          setTotalFiles(0);
-          setLog([]);
-          const url = `/search-stream?term=${encodeURIComponent(term)}`;
-          const es = new EventSource(url);
-          evtRef.current = es;
+          const startSearch = () => {
+            if (!term) { alert('Vui lòng nhập từ cần tìm'); return; }
+            if (evtRef.current) { evtRef.current.close(); }
+            setCount(0);
+            setStatus('running');
+            setProcessed(0);
+            setTotalFiles(0);
+            setLog([]);
+            const url = '/search-stream?term=' + encodeURIComponent(term);
+            const es = new EventSource(url);
+            evtRef.current = es;
 
-          es.addEventListener('started', (e) => {
-            const data = JSON.parse(e.data);
-            setTotalFiles(data.totalFiles || 0);
-            setLog((L) => [...L, `[started] totalFiles=${data.totalFiles}`]);
-          });
+            es.addEventListener('started', (e2) => {
+              try {
+                const data = JSON.parse(e2.data);
+                setTotalFiles(data.totalFiles || 0);
+                setLog((L) => L.concat('[started] totalFiles=' + data.totalFiles));
+              } catch (_) {}
+            });
 
-          es.addEventListener('progress', (e) => {
-            const data = JSON.parse(e.data);
-            setCount(data.count || 0);
-            setProcessed(data.processedFiles || 0);
-          });
+            es.addEventListener('progress', (e2) => {
+              try {
+                const data = JSON.parse(e2.data);
+                setCount(data.count || 0);
+                setProcessed(data.processedFiles || 0);
+              } catch (_) {}
+            });
 
-          es.addEventListener('done', (e) => {
-            const data = JSON.parse(e.data);
-            setCount(data.count || 0);
-            setStatus('done');
-            setLog((L) => [...L, `[done] count=${data.count}`]);
-            es.close();
-            evtRef.current = null;
-          });
+            es.addEventListener('done', (e2) => {
+              try {
+                const data = JSON.parse(e2.data);
+                setCount(data.count || 0);
+                setStatus('done');
+                setLog((L) => L.concat('[done] count=' + data.count));
+              } catch (_) {}
+              es.close();
+              evtRef.current = null;
+            });
 
-          es.addEventListener('error', (e) => {
-            try { const data = JSON.parse(e.data); setLog((L) => [...L, `[error] ${data.message}`]); } catch {}
-            setStatus('error');
-          });
+            es.addEventListener('error', (e2) => {
+              try {
+                const data = JSON.parse(e2.data);
+                setLog((L) => L.concat('[error] ' + data.message));
+              } catch (_) {}
+              setStatus('error');
+            });
 
-          es.onerror = (err) => {
-            setLog((L) => [...L, `[sse error] connection issue`]);
+            es.onerror = function () {
+              setLog((L) => L.concat('[sse error] connection issue'));
+            };
           };
-        };
 
-        return (
-          <div>
-            <div className="row">
-              <input
-                type="text"
-                placeholder="Ví dụ: apple"
-                value={term}
-                onChange={(e) => setTerm(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') startSearch(); }}
-              />
-              <button onClick={startSearch} disabled={status === 'running'}>Search</button>
-            </div>
+          return e('div', null,
+            e('div', { className: 'row' },
+              e('input', {
+                type: 'text',
+                placeholder: 'Ví dụ: apple',
+                value: term,
+                onChange: (ev) => setTerm(ev.target.value),
+                onKeyDown: (ev) => { if (ev.key === 'Enter') startSearch(); }
+              }),
+              e('button', { onClick: startSearch, disabled: status === 'running' }, 'Search')
+            ),
+            e('div', { className: 'status' },
+              e('div', null, 'Trạng thái: ', e('strong', null, status)),
+              e('div', null, 'Kết quả tạm thời mỗi 5s: ', e('span', { className: 'mono' }, (count == null ? '-' : String(count)))) ,
+              e('div', null, 'Tệp đã xử lý: ', e('span', { className: 'mono' }, processed + '/' + totalFiles))
+            ),
+            e('div', { className: 'log' },
+              log.map((line, idx) => e('div', { key: idx, className: 'mono' }, line))
+            )
+          );
+        }
 
-            <div className="status">
-              <div>Trạng thái: <strong>{status}</strong></div>
-              <div>Kết quả tạm thời mỗi 5s: <span className="mono">{count ?? '-'}</span></div>
-              <div>Tệp đã xử lý: <span className="mono">{processed}/{totalFiles}</span></div>
-            </div>
-
-            <div className="log">
-              {log.map((line, idx) => (
-                <div key={idx} className="mono">{line}</div>
-              ))}
-            </div>
-          </div>
-        );
-      }
-
-      const root = ReactDOM.createRoot(document.getElementById('app'));
-      root.render(<App />);
+        const root = ReactDOM.createRoot(document.getElementById('app'));
+        root.render(e(App));
+      })();
     </script>
   </body>
 </html>

@@ -20,6 +20,16 @@ if not exist "data" (
 
 if "%PORT%"=="" set PORT=3000
 
+REM Free the port if already in use
+echo Ensuring port %PORT% is free...
+for /f "tokens=5" %%p in ('netstat -ano ^| findstr ":%PORT% " ^| findstr LISTENING') do (
+  echo Killing PID %%p using port %PORT%...
+  taskkill /F /PID %%p >nul 2>&1
+)
+REM Small delay to allow OS to release the port
+ping -n 2 127.0.0.1 >nul
+
+
 echo Starting server on http://localhost:%PORT%
 echo Data directory: "%CD%\data"
 
