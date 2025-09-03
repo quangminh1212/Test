@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tìm kiếm tần suất từ - Streaming</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 2rem; }
+      .wrap { max-width: 720px; margin: 0 auto; }
+      .row { display: flex; gap: 8px; }
+      input[type="text"] { flex: 1; padding: 8px 10px; font-size: 16px; }
+      button { padding: 8px 12px; font-size: 16px; }
+      .status { margin-top: 1rem; padding: 0.5rem 0.75rem; background: #f5f5f5; border-radius: 6px; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+      .muted { color: #666; font-size: 14px; }
+      .log { margin-top: 0.5rem; max-height: 200px; overflow: auto; background: #fff; border: 1px solid #eee; padding: 8px; }
+    </style>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Tìm kiếm tần suất từ</h1>
+      <p class="muted">Nhập một từ (chính xác, phân tách theo dấu phẩy trong file) và xem kết quả cập nhật mỗi 5 giây.</p>
+      <div id="app"></div>
+    </div>
+
+    <script type="text/babel">
+      const { useState, useRef, useEffect } = React;
+
+      function App() {
+        const [term, setTerm] = useState("");
+        const [count, setCount] = useState(null);
+        const [status, setStatus] = useState("idle"); // idle | running | done | error
+        const [processed, setProcessed] = useState(0);
+        const [totalFiles, setTotalFiles] = useState(0);
+        const [log, setLog] = useState([]);
+        const evtRef = useRef(null);
+
+        useEffect(() => () => {
+          if (evtRef.current) evtRef.current.close();
+        }, []);
+
+        const startSearch = () => {
+          if (!term) return alert('Vui lòng nhập từ cần tìm');
+          if (evtRef.current) {
+            evtRef.current.close();
+          }
+          setCount(0);
+          setStatus('running');
+          setProcessed(0);
+          setTotalFiles(0);
+          setLog([]);
+          const url = `/search-stream?term=${encodeURIComponent(term)}`;
+          const es = new EventSource(url);
+          evtRef.current = es;
+
+          es.addEventListener('started', (e) => {
+            const data = JSON.parse(e.data);
+            setTotalFiles(data.totalFiles || 0);
+            setLog((L) => [...L, `[started] totalFiles=${data.totalFiles}`]);
+          });
+
+          es.addEventListener('progress', (e) => {
+            const data = JSON.parse(e.data);
+            setCount(data.count || 0);
+            setProcessed(data.processedFiles || 0);
+          });
+
+          es.addEventListener('done', (e) => {
+            const data = JSON.parse(e.data);
+            setCount(data.count || 0);
+            setStatus('done');
+            setLog((L) => [...L, `[done] count=${data.count}`]);
+            es.close();
+            evtRef.current = null;
+          });
+
+          es.addEventListener('error', (e) => {
+            try { const data = JSON.parse(e.data); setLog((L) => [...L, `[error] ${data.message}`]); } catch {}
+            setStatus('error');
+          });
+
+          es.onerror = (err) => {
+            setLog((L) => [...L, `[sse error] connection issue`]);
+          };
+        };
+
+        return (
+          <div>
+            <div className="row">
+              <input
+                type="text"
+                placeholder="Ví dụ: apple"
+                value={term}
+                onChange={(e) => setTerm(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') startSearch(); }}
+              />
+              <button onClick={startSearch} disabled={status === 'running'}>Search</button>
+            </div>
+
+            <div className="status">
+              <div>Trạng thái: <strong>{status}</strong></div>
+              <div>Kết quả tạm thời mỗi 5s: <span className="mono">{count ?? '-'}</span></div>
+              <div>Tệp đã xử lý: <span className="mono">{processed}/{totalFiles}</span></div>
+            </div>
+
+            <div className="log">
+              {log.map((line, idx) => (
+                <div key={idx} className="mono">{line}</div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('app'));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
+
