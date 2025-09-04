@@ -1,0 +1,13 @@
+{
+  "name": "flash-sale-iphone15",
+  "version": "1.0.0",
+  "description": "Simple flash sale demo for iPhone 15 using Node.js (no external deps)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["flash-sale", "iphone15", "node"],
+  "author": "",
+  "license": "MIT"
+}
+

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flash Sale - iPhone 15</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Flash Sale</h1>
+    <div id="status" class="status">Đang tải...</div>
+
+    <div id="product" class="product" style="display:none">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/3/31/IPhone_15_Pro_logo.svg" alt="iPhone 15" class="hero"/>
+      <h2>Iphone 15</h2>
+      <div class="price">Giá: 1000 USD</div>
+
+      <form id="orderForm">
+        <label for="phone">Số điện thoại</label>
+        <input type="text" id="phone" name="phone" maxlength="20" required placeholder="Nhập số điện thoại" />
+        <div class="actions">
+          <button type="submit" id="btnAdd">Add to cart</button>
+          <button type="button" id="btnOOS" disabled style="display:none">Out of stock</button>
+        </div>
+      </form>
+      <div id="message" class="message"></div>
+    </div>
+
+    <div id="noProduct" class="no-product" style="display:none">No product</div>
+  </div>
+
+  <script src="/main.js"></script>
+</body>
+</html>
+
